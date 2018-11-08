@@ -1,57 +1,91 @@
 package com.galvanize.learn.springlearn;
 
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
-import org.skyscreamer.jsonassert.JSONAssert;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.RequestBuilder;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-import java.text.SimpleDateFormat;
+import java.io.IOException;
+import java.text.ParseException;
 import java.util.Date;
+import java.util.List;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.times;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@AutoConfigureMockMvc
 public class SpringLearnApplicationTests {
     @Autowired
     private MockMvc mockMvc;
 
+    @Mock
+    LessonRepository repo;
+
+    @Rule
+    public WireMockRule wireMockRule = new WireMockRule(4000);
+
     @Test
-	public void getData() throws Exception {
-        LessonRepository repo = Mockito.mock(LessonRepository.class);
-	    LessonsController controller = new LessonsController(repo);
-	    //LessonsController mockController = Mockito.mock(LessonsController.class);
-        String resultJson = "{\n" +
-                "        \"id\": 1,\n" +
-                "        \"title\": \"first\",\n" +
-                "        \"deliveredOn\": \"2018-11-07\"\n" +
-                "    }";
+    public void create() throws ParseException {
+        LessonsController controller = new LessonsController(repo);
+        //Lesson expected = new Lesson();
+        //expected.setId(1L);
+        //expected.setTitle("first");
+        //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-dd-MM", Locale.ENGLISH);
+        //LocalDate date = LocalDate.parse("2018-11-07", formatter);
+        //Date date1 = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        //Date date1=new DateTimeFormatter("yyyy-MM-dd").parse("2018-11-07");
+        //expected.setDeliveredOn(date1);
         Lesson lesson = new Lesson();
-        lesson.setId(1L);
-        lesson.setTitle("first");
-        Date date1=new SimpleDateFormat("yyyy-MM-dd").parse("2018-11-07");
-        lesson.setDeliveredOn(date1);
-        //when(controller.all()).thenReturn(resultJson);
+        controller.create(lesson);
 
-        RequestBuilder requestBuilder = MockMvcRequestBuilders.get(
-                "/lessons").accept(
-                MediaType.APPLICATION_JSON);
+        then(repo).should(times(1)).save(lesson);
 
-        MvcResult result = mockMvc.perform(requestBuilder).andReturn();
-
-        System.out.println(result.getResponse());
-        String expected = "{id:1,title:first,deliveredOn:2018-11-07}";
-
-        // {"id":"Course1","name":"Spring","description":"10 Steps, 25 Examples and 10K Students","steps":["Learn Maven","Import Project","First Example","Second Example"]}
-
-        JSONAssert.assertEquals(expected, result.getResponse()
-                .getContentAsString(), false);
     }
+
+    @Test
+	public void updateData() {
+    LessonsController controller = new LessonsController(repo);
+        Lesson lesson = new Lesson();
+        controller.update(lesson);
+
+        then(repo).should(times(1)).save(lesson);
+    }
+
+    @Test
+    public void delete(){
+        LessonsController controller = new LessonsController(repo);
+        controller.delete(1L);
+        then(repo).should(times(1)).deleteById(1L);
+    }
+
+    @Test
+    public void serviceTest() throws IOException, ParseException {
+        LessonsController controller = new LessonsController(repo);
+        wireMockRule.stubFor(get(urlEqualTo("/test/learn"))
+                //.withHeader("Accept", equalTo("application/json"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("2018-11-07")));
+
+        Date date = new Date("2018-11-07");
+        List<Lesson> value = controller.getByDate(date);
+        System.out.println("response in test:;" + value.get(0).getId());
+
+
+    }
+
+
+
+
 
 }
