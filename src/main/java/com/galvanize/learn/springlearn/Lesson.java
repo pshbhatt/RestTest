@@ -3,7 +3,7 @@ package com.galvanize.learn.springlearn;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import javax.persistence.*;
-import java.util.Date;
+import java.time.LocalDate;
 
 @Entity
 public class Lesson {
@@ -16,7 +16,7 @@ public class Lesson {
 
     @Column(columnDefinition = "date")
     @JsonFormat(pattern = "yyyy-MM-dd")
-    private Date deliveredOn;
+    private LocalDate deliveredOn;
 
     public Long getId() {
         return id;
@@ -34,11 +34,11 @@ public class Lesson {
         this.title = title;
     }
 
-    public Date getDeliveredOn() {
+    public LocalDate getDeliveredOn() {
         return deliveredOn;
     }
 
-    public void setDeliveredOn(Date deliveredOn) {
+    public void setDeliveredOn(LocalDate deliveredOn) {
         this.deliveredOn = deliveredOn;
     }
 }

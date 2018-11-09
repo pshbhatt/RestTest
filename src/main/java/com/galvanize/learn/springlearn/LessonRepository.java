@@ -7,6 +7,6 @@ import java.util.List;
 
 public interface LessonRepository extends CrudRepository<Lesson, Long> {
 
-    public List<Lesson> findByDate(Date deliveredOn);
+    public List<Lesson> findByDeliveredOn(Date deliveredOn);
 
 }

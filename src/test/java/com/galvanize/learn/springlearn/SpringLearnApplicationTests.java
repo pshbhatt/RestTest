@@ -13,8 +13,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.Date;
-import java.util.List;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.mockito.BDDMockito.then;
@@ -70,17 +72,19 @@ public class SpringLearnApplicationTests {
     @Test
     public void serviceTest() throws IOException, ParseException {
         LessonsController controller = new LessonsController(repo);
-        wireMockRule.stubFor(get(urlEqualTo("/test/learn"))
+        wireMockRule.stubFor(get(urlEqualTo("/test/learn/2018-11-07"))
                 //.withHeader("Accept", equalTo("application/json"))
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")
-                        .withBody("2018-11-07")));
+                        .withBody("{id:6,title:sixth,deliveredOn:2018-11-07T00:00:00Z}")));
+        String dateInString = "2018-11-07T00:00:00Z";
 
-        Date date = new Date("2018-11-07");
-        List<Lesson> value = controller.getByDate(date);
-        System.out.println("response in test:;" + value.get(0).getId());
+        Instant instant = Instant.parse(dateInString);
 
+        //get date time only
+        LocalDate result = LocalDate.ofInstant(instant, ZoneId.of(ZoneOffset.UTC.getId()));
+        controller.getByDate(result);
 
     }
 

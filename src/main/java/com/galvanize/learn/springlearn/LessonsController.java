@@ -6,11 +6,15 @@ import wiremock.org.apache.http.client.methods.HttpGet;
 import wiremock.org.apache.http.impl.client.CloseableHttpClient;
 import wiremock.org.apache.http.impl.client.HttpClients;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
@@ -31,7 +35,7 @@ public class LessonsController {
         return this.repo.findAll();
     }
 
-    @PostMapping("")
+    @PostMapping("/create")
     public Lesson create(@RequestBody Lesson lesson){
 
         return this.repo.save(lesson);
@@ -48,16 +52,32 @@ public class LessonsController {
     }
 
     @PostMapping("/byDate")
-    public List<Lesson> getByDate(@RequestParam Date date) throws IOException, ParseException {
+    public void getByDate(@RequestParam LocalDate date) throws IOException, ParseException {
         CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpGet request = new HttpGet("http://localhost:4000/test/learn");
+        HttpGet request = new HttpGet("http://localhost:4000/test/learn/" + date.toString());
         CloseableHttpResponse httpResponse = httpClient.execute(request);
         String stringResponse = convertHttpResponseToString(httpResponse);
-        System.out.println("Response from request in controller: " + stringResponse);
-        Date date1=new SimpleDateFormat("yyyy-dd-MM").parse(stringResponse);
-        List<Lesson> result = repo.findByDate(date1);
-        System.out.println("Records: " + result.get(0).getTitle());
-        return result;
+        Lesson lesson = new Lesson();
+        String newJson = stringResponse.replace("{", "");
+        String[] members = newJson.split(",");
+        List<String> newElements = new ArrayList<>();
+        for(String member: members){
+            String[] elements = member.split(":");
+            newElements.add(elements[1]);
+        }
+
+        lesson.setId(Long.parseLong(newElements.get(0)));
+        lesson.setTitle(newElements.get(1));
+        System.out.println("====================================================="+newElements.get(2));
+        Instant instant = Instant.parse(newElements.get(2)+":"+newElements.get(3));
+
+        //get date time only
+        LocalDate result = LocalDate.ofInstant(instant, ZoneId.of(ZoneOffset.UTC.getId()));
+        lesson.setDeliveredOn(result);
+        create(lesson);
+
+
+        //sendDataByDate(stringResponse, date.toString());
     }
 
     private String convertHttpResponseToString(CloseableHttpResponse httpResponse) throws IOException {
@@ -70,6 +90,33 @@ public class LessonsController {
         String string = scanner.useDelimiter("\\Z").next();
         scanner.close();
         return string;
+    }
+
+    public void sendDataByDate(String input, String date) throws IOException {
+        URL url = new URL("http://localhost:8080/lessons/create");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setDoOutput(true);
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+
+        OutputStream os = conn.getOutputStream();
+        os.write(input.getBytes());
+        os.flush();
+
+        if (conn.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
+            throw new RuntimeException("Failed : HTTP error code : "
+                    + conn.getResponseCode());
+        }
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(
+                (conn.getInputStream())));
+
+        String output;
+        System.out.println("Output from Server .... \n");
+        while ((output = br.readLine()) != null) {
+            System.out.println(output);
+        }
+
     }
 
 }
